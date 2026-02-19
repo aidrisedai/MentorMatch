@@ -23,11 +23,17 @@ export const getAuthUrl = () => {
     'https://www.googleapis.com/auth/calendar.events'
   ];
 
-  return oauth2Client.generateAuthUrl({
+  const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: scopes,
   });
+  
+  console.log('Generated auth URL:', authUrl);
+  console.log('Client ID:', CLIENT_ID ? 'Set' : 'Not set');
+  console.log('Redirect URI:', REDIRECT_URI);
+  
+  return authUrl;
 };
 
 export const getGoogleUserInfo = async (code: string) => {
