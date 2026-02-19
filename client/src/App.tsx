@@ -14,6 +14,7 @@ import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import VerifyEmail from "@/pages/VerifyEmail";
 import Onboarding from "@/pages/Onboarding";
+import GoogleAuthCallback from "@/pages/GoogleAuthCallback";
 
 function Router() {
   return (
@@ -24,6 +25,8 @@ function Router() {
       <Route path="/mentor/:id" component={MentorProfile} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/google/success" component={GoogleAuthCallback} />
+      <Route path="/auth/google/error" component={GoogleAuthCallback} />
       <Route path="/call/:bookingId" component={CallRoom} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />

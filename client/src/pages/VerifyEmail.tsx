@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle, Mail } from "lucide-react";
-import authBackground from "@assets/generated_images/abstract_connection_network_background.png";
+// import authBackground from "@assets/generated_images/abstract_connection_network_background.png";
 
 export default function VerifyEmail() {
   const [status, setStatus] = useState<"loading" | "success" | "error" | "already_verified">("loading");
@@ -53,9 +53,10 @@ export default function VerifyEmail() {
     <div 
       className="min-h-screen flex items-center justify-center p-4"
       style={{
-        backgroundImage: `url(${authBackground})`,
+        // backgroundImage: `url(${authBackground})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center'
+        backgroundPosition: 'center',
+        background: 'linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, transparent 50%, hsl(var(--primary) / 0.05) 100%)'
       }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />

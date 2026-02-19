@@ -1,106 +1,20 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/lib/authStore";
 import Navbar from "@/components/layout/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PhoneOff, Mic, MicOff, Video, VideoOff, Monitor, MonitorOff } from "lucide-react";
-
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ],
-};
+import { ExternalLink, Loader2, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CallRoom() {
   const { bookingId } = useParams();
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
-
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
-  const cleanupRef = useRef(false);
-
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<string>("Connecting...");
-  const [remotePeerId, setRemotePeerId] = useState<string | null>(null);
-
-  const roomId = `mentormatch-${bookingId}`;
-  const peerId = user ? `${user.id}` : "";
-
-  const isPolite = useCallback(
-    (otherPeerId: string) => peerId > otherPeerId,
-    [peerId]
-  );
-
-  const sendWs = useCallback((msg: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(msg));
-    }
-  }, []);
-
-  const createPeerConnection = useCallback(
-    (targetId: string) => {
-      if (pcRef.current) {
-        pcRef.current.close();
-        pcRef.current = null;
-      }
-
-      const pc = new RTCPeerConnection(ICE_SERVERS);
-      pcRef.current = pc;
-
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          pc.addTrack(track, localStreamRef.current!);
-        });
-      }
-
-      pc.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          sendWs({
-            type: "ice-candidate",
-            roomId,
-            senderId: peerId,
-            payload: { targetId, data: event.candidate },
-          });
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        switch (pc.connectionState) {
-          case "connected":
-            setConnectionStatus("Connected");
-            break;
-          case "disconnected":
-            setConnectionStatus("Peer disconnected");
-            break;
-          case "failed":
-            setConnectionStatus("Connection failed - try refreshing");
-            break;
-          case "connecting":
-            setConnectionStatus("Connecting...");
-            break;
-        }
-      };
-
-      return pc;
-    },
-    [roomId, peerId, sendWs]
-  );
+  const { toast } = useToast();
+  const [meetingLink, setMeetingLink] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -108,371 +22,112 @@ export default function CallRoom() {
       return;
     }
 
-    cleanupRef.current = false;
-
-    const init = async () => {
+    const fetchMeetingLink = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
+        const response = await fetch(`/api/bookings/${bookingId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch booking details");
         }
-      } catch {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: true,
-          });
-          localStreamRef.current = stream;
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-          }
-          setIsVideoOff(true);
-        } catch {
-          setConnectionStatus("Could not access camera or microphone");
-          return;
+        
+        const booking = await response.json();
+        
+        if (booking.meetingLink) {
+          setMeetingLink(booking.meetingLink);
+          // Auto-redirect to Google Meet after 3 seconds
+          setTimeout(() => {
+            window.open(booking.meetingLink, '_blank');
+          }, 3000);
+        } else {
+          setError("No Google Meet link available for this session. The mentor may need to connect their Google account.");
         }
+      } catch (err) {
+        console.error("Error fetching booking:", err);
+        setError("Failed to load meeting details. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws/signaling`);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        if (cleanupRef.current) return;
-        sendWs({ type: "join", roomId, senderId: peerId });
-        setConnectionStatus("Waiting for the other person...");
-      };
-
-      ws.onmessage = async (event) => {
-        if (cleanupRef.current) return;
-        const msg = JSON.parse(event.data);
-
-        switch (msg.type) {
-          case "peers": {
-            if (msg.peers.length > 0) {
-              const targetId = msg.peers[0];
-              setRemotePeerId(targetId);
-              const pc = createPeerConnection(targetId);
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              sendWs({
-                type: "offer",
-                roomId,
-                senderId: peerId,
-                payload: { targetId, data: offer },
-              });
-              setConnectionStatus("Connecting...");
-            }
-            break;
-          }
-
-          case "peer-joined": {
-            setRemotePeerId(msg.peerId);
-            setConnectionStatus("Peer joined, waiting for connection...");
-            break;
-          }
-
-          case "offer": {
-            const targetId = msg.senderId;
-            setRemotePeerId(targetId);
-
-            if (pcRef.current && pcRef.current.signalingState !== "stable") {
-              if (!isPolite(targetId)) {
-                return;
-              }
-              await pcRef.current.setLocalDescription({ type: "rollback" });
-            }
-
-            const pc =
-              pcRef.current && pcRef.current.signalingState === "stable"
-                ? pcRef.current
-                : createPeerConnection(targetId);
-
-            await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            sendWs({
-              type: "answer",
-              roomId,
-              senderId: peerId,
-              payload: { targetId, data: answer },
-            });
-            break;
-          }
-
-          case "answer": {
-            if (pcRef.current) {
-              await pcRef.current.setRemoteDescription(
-                new RTCSessionDescription(msg.payload)
-              );
-            }
-            break;
-          }
-
-          case "ice-candidate": {
-            if (pcRef.current) {
-              try {
-                await pcRef.current.addIceCandidate(new RTCIceCandidate(msg.payload));
-              } catch {
-                // ignore failed ICE candidates
-              }
-            }
-            break;
-          }
-
-          case "peer-left": {
-            setConnectionStatus("The other person left the call");
-            setRemotePeerId(null);
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = null;
-            }
-            if (pcRef.current) {
-              pcRef.current.close();
-              pcRef.current = null;
-            }
-            break;
-          }
-        }
-      };
-
-      ws.onclose = () => {
-        if (!cleanupRef.current) {
-          setConnectionStatus("Disconnected from server");
-          if (pcRef.current) {
-            pcRef.current.close();
-            pcRef.current = null;
-          }
-        }
-      };
     };
 
-    init();
+    fetchMeetingLink();
+  }, [bookingId, isAuthenticated, user, setLocation]);
 
-    return () => {
-      cleanupRef.current = true;
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({ type: "leave", roomId, senderId: peerId })
-        );
-        wsRef.current.close();
-      }
-      wsRef.current = null;
-      if (pcRef.current) {
-        pcRef.current.close();
-        pcRef.current = null;
-      }
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((t) => t.stop());
-        localStreamRef.current = null;
-      }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((t) => t.stop());
-        screenStreamRef.current = null;
-      }
-    };
-  }, [bookingId, isAuthenticated, user, setLocation, createPeerConnection, roomId, peerId, sendWs, isPolite]);
-
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-      });
-      setIsMuted(!isMuted);
+  const handleJoinMeeting = () => {
+    if (meetingLink) {
+      window.open(meetingLink, '_blank');
     }
   };
 
-  const toggleVideo = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getVideoTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-      });
-      setIsVideoOff(!isVideoOff);
-    }
-  };
-
-  const toggleScreenShare = async () => {
-    if (!pcRef.current) return;
-
-    if (isScreenSharing) {
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((t) => t.stop());
-        screenStreamRef.current = null;
-      }
-      const camTrack = localStreamRef.current?.getVideoTracks()[0];
-      if (camTrack) {
-        const sender = pcRef.current
-          .getSenders()
-          .find((s) => s.track?.kind === "video");
-        if (sender) {
-          sender.replaceTrack(camTrack);
-        }
-      }
-      if (localVideoRef.current && localStreamRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
-      }
-      setIsScreenSharing(false);
-    } else {
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-        });
-        screenStreamRef.current = screenStream;
-        const screenTrack = screenStream.getVideoTracks()[0];
-        const sender = pcRef.current
-          .getSenders()
-          .find((s) => s.track?.kind === "video");
-        if (sender) {
-          sender.replaceTrack(screenTrack);
-        }
-        screenTrack.onended = () => {
-          toggleScreenShare();
-        };
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = screenStream;
-        }
-        setIsScreenSharing(true);
-      } catch {
-        // user cancelled
-      }
-    }
-  };
-
-  const endCall = () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({ type: "leave", roomId, senderId: peerId })
-      );
-      wsRef.current.close();
-    }
-    wsRef.current = null;
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => t.stop());
-      localStreamRef.current = null;
-    }
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((t) => t.stop());
-      screenStreamRef.current = null;
-    }
+  const handleReturnToDashboard = () => {
     setLocation("/dashboard");
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
-        <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold font-heading" data-testid="text-call-title">
-                Mentorship Session
-              </h1>
-              <p className="text-sm text-muted-foreground" data-testid="text-connection-status">
-                {connectionStatus}
-              </p>
+      <main className="flex-1 flex items-center justify-center p-4 md:p-6 lg:p-8">
+        <Card className="max-w-md w-full p-8">
+          {isLoading ? (
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <h2 className="text-xl font-semibold">Loading meeting details...</h2>
             </div>
-            <Button
-              variant="destructive"
-              onClick={endCall}
-              className="gap-2"
-              data-testid="button-end-call"
-            >
-              <PhoneOff className="w-4 h-4" /> End Call
-            </Button>
-          </div>
-
-          <Card className="flex-1 overflow-hidden border-2 border-primary/20 shadow-xl relative min-h-[500px] bg-muted">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-              data-testid="video-remote"
-            />
-            {!remotePeerId && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto animate-pulse">
-                    <Video className="w-8 h-8 text-primary" />
-                  </div>
-                  <p className="text-muted-foreground text-lg font-medium">
-                    Waiting for the other person to join...
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    Both participants need to click "Join Call" from the dashboard
-                  </p>
-                </div>
+          ) : error ? (
+            <div className="flex flex-col items-center gap-4">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h2 className="text-xl font-semibold">Unable to Join Meeting</h2>
+              <p className="text-center text-muted-foreground">{error}</p>
+              <Button onClick={handleReturnToDashboard} className="mt-4">
+                Return to Dashboard
+              </Button>
+            </div>
+          ) : meetingLink ? (
+            <div className="flex flex-col items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <svg
+                  className="w-10 h-10"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                    fill="#34A853"
+                  />
+                </svg>
               </div>
-            )}
+              
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold">Your Google Meet is Ready</h2>
+                <p className="text-muted-foreground">
+                  Click the button below to join your mentorship session on Google Meet
+                </p>
+              </div>
 
-            <div className="absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-primary/30 shadow-lg bg-black">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{ transform: "scaleX(-1)" }}
-                data-testid="video-local"
-              />
-              {isVideoOff && (
-                <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                  <VideoOff className="w-6 h-6 text-muted-foreground" />
-                </div>
-              )}
+              <div className="w-full space-y-3">
+                <Button 
+                  onClick={handleJoinMeeting}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Join Google Meet
+                </Button>
+                
+                <Button 
+                  onClick={handleReturnToDashboard}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Return to Dashboard
+                </Button>
+              </div>
+
+              <div className="text-xs text-muted-foreground text-center mt-4">
+                <p>You'll be redirected to Google Meet automatically in a few seconds...</p>
+                <p className="mt-2">Make sure pop-ups are enabled for this site.</p>
+              </div>
             </div>
-          </Card>
-
-          <div className="flex items-center justify-center gap-4 py-4">
-            <Button
-              variant={isMuted ? "destructive" : "secondary"}
-              size="lg"
-              className="rounded-full w-14 h-14"
-              onClick={toggleMute}
-              data-testid="button-toggle-mute"
-            >
-              {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </Button>
-
-            <Button
-              variant={isVideoOff ? "destructive" : "secondary"}
-              size="lg"
-              className="rounded-full w-14 h-14"
-              onClick={toggleVideo}
-              data-testid="button-toggle-video"
-            >
-              {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
-            </Button>
-
-            <Button
-              variant={isScreenSharing ? "default" : "secondary"}
-              size="lg"
-              className="rounded-full w-14 h-14"
-              onClick={toggleScreenShare}
-              disabled={!remotePeerId}
-              data-testid="button-toggle-screen-share"
-            >
-              {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
-            </Button>
-
-            <Button
-              variant="destructive"
-              size="lg"
-              className="rounded-full w-14 h-14"
-              onClick={endCall}
-              data-testid="button-end-call-bottom"
-            >
-              <PhoneOff className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
+          ) : null}
+        </Card>
       </main>
     </div>
   );

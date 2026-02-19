@@ -9,6 +9,8 @@ import bcrypt from "bcryptjs";
 import { sendWelcomeEmail, sendBookingConfirmationEmail, sendMeetingReminderEmail, sendVerificationEmail } from "./email";
 import crypto from "crypto";
 import { z } from "zod";
+import { getAuthUrl, getGoogleUserInfo, createOrUpdateGoogleUser, generateJWT, verifyJWT } from "./googleAuth";
+import { createGoogleMeetEvent, updateGoogleMeetEvent, deleteGoogleMeetEvent } from "./googleCalendar";
 
 const TOKEN_EXPIRY_HOURS = 24;
 
@@ -147,6 +149,11 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      // Check if user has password (might be Google-only user)
+      if (!user.password) {
+        return res.status(401).json({ message: "Please sign in with Google" });
+      }
+      
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
         return res.status(401).json({ message: "Invalid credentials" });
@@ -157,6 +164,69 @@ export async function registerRoutes(
       res.json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Google OAuth Routes
+  app.get("/api/auth/google", (req, res) => {
+    const role = req.query.role as string || 'mentee';
+    const authUrl = getAuthUrl();
+    // Store role in session or as state parameter
+    res.json({ url: authUrl + `&state=${role}` });
+  });
+
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const { code, state } = req.query;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ message: "Authorization code is required" });
+      }
+      
+      const role = (state as string || 'mentee') as 'mentor' | 'mentee';
+      
+      // Exchange code for tokens and get user info
+      const { userInfo, tokens } = await getGoogleUserInfo(code);
+      
+      // Create or update user in database
+      const user = await createOrUpdateGoogleUser(userInfo, tokens, role);
+      
+      // Generate JWT token
+      const jwtToken = generateJWT(user);
+      
+      // Redirect to frontend with token
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+      res.redirect(`${frontendUrl}/auth/google/success?token=${jwtToken}`);
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+      res.redirect(`${frontendUrl}/auth/google/error`);
+    }
+  });
+
+  app.post("/api/auth/google/token", async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      
+      const decoded = verifyJWT(token);
+      if (!decoded) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+      
+      // Get full user data
+      const user = await storage.getUser((decoded as any).id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password, verificationToken, ...userWithoutSensitive } = user;
+      res.json(userWithoutSensitive);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to verify token" });
     }
   });
 
@@ -399,7 +469,7 @@ export async function registerRoutes(
 
       const booking = await storage.createBooking(validatedData);
       
-      // Send booking confirmation emails (non-blocking)
+      // Create Google Meet link and send booking confirmation emails (non-blocking)
       (async () => {
         try {
           const mentee = await storage.getUser(validatedData.menteeId);
@@ -409,6 +479,24 @@ export async function registerRoutes(
           if (mentee && mentor) {
             const serviceName = service?.title || "Mentorship Session";
             const scheduledAt = new Date(validatedData.scheduledAt);
+            
+            // Try to create Google Meet event if mentor has Google OAuth
+            try {
+              if (mentor.googleAccessToken) {
+                await createGoogleMeetEvent(
+                  validatedData.mentorId,
+                  validatedData.menteeId,
+                  booking.id,
+                  scheduledAt,
+                  validatedData.duration || 30,
+                  serviceName
+                );
+              }
+            } catch (meetError) {
+              console.error("Failed to create Google Meet event:", meetError);
+              // Continue without Meet link - can be added later
+            }
+            
             await sendBookingConfirmationEmail(
               mentee.email,
               mentee.firstName,

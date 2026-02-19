@@ -7,9 +7,10 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import authBackground from "@assets/generated_images/abstract_connection_network_background.png";
+// import authBackground from "@assets/generated_images/abstract_connection_network_background.png";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { useAuth } from "@/lib/authStore";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
 export default function AuthPage() {
   const getInitialTab = () => {
@@ -21,6 +22,7 @@ export default function AuthPage() {
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'mentor' | 'mentee'>('mentee');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -225,6 +227,19 @@ export default function AuthPage() {
                   </CardFooter>
                 </Card>
               </form>
+              <div className="mt-6 space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                <GoogleSignIn role="mentee" />
+              </div>
             </TabsContent>
             
             <TabsContent value="signup">
@@ -256,14 +271,14 @@ export default function AuthPage() {
                       <Label>I want to join as a:</Label>
                       <div className="grid grid-cols-2 gap-4 pt-2">
                         <div className="relative">
-                          <input type="radio" name="role" id="role-mentee" data-testid="radio-mentee" className="peer sr-only" defaultChecked />
+                          <input type="radio" name="role" id="role-mentee" data-testid="radio-mentee" className="peer sr-only" defaultChecked onChange={() => setSelectedRole('mentee')} />
                           <label htmlFor="role-mentee" className="flex flex-col items-center justify-center p-4 border-2 rounded-xl cursor-pointer hover:bg-muted peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
                             <span className="font-semibold text-sm">Student 📚</span>
                             <span className="text-xs text-muted-foreground">I want a mentor</span>
                           </label>
                         </div>
                         <div className="relative">
-                          <input type="radio" name="role" id="role-mentor" data-testid="radio-mentor" className="peer sr-only" />
+                          <input type="radio" name="role" id="role-mentor" data-testid="radio-mentor" className="peer sr-only" onChange={() => setSelectedRole('mentor')} />
                           <label htmlFor="role-mentor" className="flex flex-col items-center justify-center p-4 border-2 rounded-xl cursor-pointer hover:bg-muted peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
                             <span className="font-semibold text-sm">Mentor ⭐</span>
                             <span className="text-xs text-muted-foreground">I want to guide</span>
@@ -286,6 +301,19 @@ export default function AuthPage() {
                   </CardFooter>
                 </Card>
               </form>
+              <div className="mt-6 space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                <GoogleSignIn role={selectedRole} text="Sign up with Google" />
+              </div>
             </TabsContent>
           </Tabs>
 
@@ -296,12 +324,8 @@ export default function AuthPage() {
       </div>
 
       <div className="hidden lg:block relative bg-transparent overflow-hidden z-10">
-        <img 
-          src={authBackground} 
-          alt="Background" 
-          className="absolute inset-0 w-full h-full object-cover opacity-10"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
+        {/* Background image placeholder - add your background image here */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
         
         <div className="absolute bottom-12 left-12 right-12 text-foreground space-y-4">
           <blockquote className="text-2xl font-medium font-heading leading-relaxed text-muted-foreground">

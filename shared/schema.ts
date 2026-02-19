@@ -6,7 +6,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   role: text("role").notNull().$type<"mentor" | "mentee">(),
@@ -22,6 +22,11 @@ export const users = pgTable("users", {
   verificationTokenExpiresAt: timestamp("verification_token_expires_at"),
   interests: text("interests").array(),
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
+  // Google OAuth fields
+  googleId: text("google_id").unique(),
+  googleRefreshToken: text("google_refresh_token"),
+  googleAccessToken: text("google_access_token"),
+  googleTokenExpiresAt: timestamp("google_token_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -41,11 +46,11 @@ export const insertUserSchema = createInsertSchema(users, {
         message: "Password must contain at least 3 of: lowercase, uppercase, number, symbol",
       });
     }
-  }),
+  }).optional(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   role: z.enum(["mentor", "mentee"]),
-}).omit({ id: true, createdAt: true, rating: true, reviewCount: true, emailVerified: true, verificationToken: true, verificationTokenExpiresAt: true });
+}).omit({ id: true, createdAt: true, rating: true, reviewCount: true, emailVerified: true, verificationToken: true, verificationTokenExpiresAt: true, googleId: true, googleRefreshToken: true, googleAccessToken: true, googleTokenExpiresAt: true });
 
 export const selectUserSchema = createSelectSchema(users);
 
@@ -85,6 +90,8 @@ export const bookings = pgTable("bookings", {
   duration: integer("duration").notNull().default(30),
   status: text("status").notNull().$type<"pending" | "confirmed" | "completed" | "cancelled">().default("pending"),
   notes: text("notes"),
+  meetingLink: text("meeting_link"),
+  googleEventId: text("google_event_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
