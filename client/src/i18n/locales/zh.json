@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "首页",
+    "mentors": "寻找导师",
+    "dashboard": "控制面板",
+    "signIn": "登录",
+    "signUp": "注册",
+    "signOut": "退出",
+    "getStarted": "开始使用",
+    "profile": "个人资料",
+    "settings": "设置"
+  },
+  "landing": {
+    "hero": {
+      "title": "与真实世界的导师连接",
+      "subtitle": "通过与行业专业人士的一对一指导，缩小学校与现实世界之间的差距。",
+      "cta": "寻找您的导师",
+      "secondary": "成为导师"
+    },
+    "features": {
+      "title": "为什么选择 MentorMatch？",
+      "personalized": {
+        "title": "个性化指导",
+        "description": "从您感兴趣领域的专业人士那里获得量身定制的建议。"
+      },
+      "flexible": {
+        "title": "灵活的时间安排",
+        "description": "预约适合您时间表的课程，无论您身在何处。"
+      },
+      "verified": {
+        "title": "认证导师",
+        "description": "所有导师都是经过验证的专业人士，拥有真正的行业经验。"
+      }
+    }
+  },
+  "auth": {
+    "signIn": "登录",
+    "signUp": "注册",
+    "email": "电子邮件",
+    "password": "密码",
+    "firstName": "名字",
+    "lastName": "姓氏",
+    "role": "我是...",
+    "mentor": "导师",
+    "mentee": "学生",
+    "noAccount": "没有账户？",
+    "hasAccount": "已有账户？",
+    "createAccount": "创建账户"
+  },
+  "dashboard": {
+    "sessions": "我的课程",
+    "listings": "我的服务",
+    "availability": "可用时间",
+    "billing": "账单",
+    "settings": "设置",
+    "totalSessions": "总课程数",
+    "completed": "已完成",
+    "hoursMentored": "指导时长",
+    "hoursLearned": "学习时长",
+    "basedOnCompleted": "基于已完成的课程"
+  },
+  "marketplace": {
+    "title": "找到的导师",
+    "search": "按姓名、职位或公司搜索...",
+    "noMentors": "未找到导师",
+    "adjustFilters": "尝试调整您的筛选条件或搜索词。",
+    "clearFilters": "清除所有筛选",
+    "viewProfile": "查看资料",
+    "rate": "费率"
+  },
+  "common": {
+    "loading": "加载中...",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "submit": "提交",
+    "back": "返回"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Nyumbani",
+    "mentors": "Tafuta Washauri",
+    "dashboard": "Dashibodi",
+    "signIn": "Ingia",
+    "signUp": "Jisajili",
+    "signOut": "Toka",
+    "getStarted": "Anza Sasa",
+    "profile": "Wasifu",
+    "settings": "Mipangilio"
+  },
+  "landing": {
+    "hero": {
+      "title": "Ungana na Washauri wa Ulimwengu Halisi",
+      "subtitle": "Punguza pengo kati ya shule na ulimwengu halisi kupitia ushauri wa mtu mmoja kwa mmoja na wataalamu wa sekta.",
+      "cta": "Tafuta Mshauri Wako",
+      "secondary": "Kuwa Mshauri"
+    },
+    "features": {
+      "title": "Kwa Nini MentorMatch?",
+      "personalized": {
+        "title": "Mwongozo wa Kibinafsi",
+        "description": "Pata ushauri ulioboreshwa kutoka kwa wataalamu katika eneo lako la kupendeza."
+      },
+      "flexible": {
+        "title": "Ratiba Rahisi",
+        "description": "Weka miadi inayofaa ratiba yako, kutoka popote ulimwenguni."
+      },
+      "verified": {
+        "title": "Washauri Waliothibitishwa",
+        "description": "Washauri wote ni wataalamu waliothibitishwa wenye uzoefu halisi wa sekta."
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Ingia",
+    "signUp": "Jisajili",
+    "email": "Barua Pepe",
+    "password": "Nenosiri",
+    "firstName": "Jina la Kwanza",
+    "lastName": "Jina la Mwisho",
+    "role": "Mimi ni...",
+    "mentor": "Mshauri",
+    "mentee": "Mwanafunzi",
+    "noAccount": "Huna akaunti?",
+    "hasAccount": "Tayari una akaunti?",
+    "createAccount": "Fungua Akaunti"
+  },
+  "dashboard": {
+    "sessions": "Vikao Vyangu",
+    "listings": "Huduma Zangu",
+    "availability": "Upatikanaji",
+    "billing": "Malipo",
+    "settings": "Mipangilio",
+    "totalSessions": "Vikao Vyote",
+    "completed": "vimekamilika",
+    "hoursMentored": "Masaa ya Ushauri",
+    "hoursLearned": "Masaa ya Kujifunza",
+    "basedOnCompleted": "Kulingana na vikao vilivyokamilika"
+  },
+  "marketplace": {
+    "title": "Washauri Waliopatikana",
+    "search": "Tafuta kwa jina, cheo, au kampuni...",
+    "noMentors": "Hakuna washauri waliopatikana",
+    "adjustFilters": "Jaribu kurekebisha vichujio vyako au maneno ya kutafuta.",
+    "clearFilters": "Futa vichujio vyote",
+    "viewProfile": "Tazama Wasifu",
+    "rate": "Bei"
+  },
+  "common": {
+    "loading": "Inapakia...",
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "submit": "Wasilisha",
+    "back": "Rudi"
+  }
+}

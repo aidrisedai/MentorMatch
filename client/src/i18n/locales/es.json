@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "mentors": "Buscar Mentores",
+    "dashboard": "Panel",
+    "signIn": "Iniciar Sesión",
+    "signUp": "Registrarse",
+    "signOut": "Cerrar Sesión",
+    "getStarted": "Comenzar",
+    "profile": "Perfil",
+    "settings": "Configuración"
+  },
+  "landing": {
+    "hero": {
+      "title": "Conecta con Mentores del Mundo Real",
+      "subtitle": "Cierra la brecha entre la escuela y el mundo real a través de mentoría 1 a 1 con profesionales de la industria.",
+      "cta": "Encuentra Tu Mentor",
+      "secondary": "Conviértete en Mentor"
+    },
+    "features": {
+      "title": "¿Por qué MentorMatch?",
+      "personalized": {
+        "title": "Orientación Personalizada",
+        "description": "Obtén consejos personalizados de profesionales en tu campo de interés."
+      },
+      "flexible": {
+        "title": "Horarios Flexibles",
+        "description": "Reserva sesiones que se ajusten a tu horario, desde cualquier parte del mundo."
+      },
+      "verified": {
+        "title": "Mentores Verificados",
+        "description": "Todos los mentores son profesionales verificados con experiencia real en la industria."
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "signUp": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "role": "Soy un...",
+    "mentor": "Mentor",
+    "mentee": "Estudiante",
+    "noAccount": "¿No tienes cuenta?",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "createAccount": "Crear Cuenta"
+  },
+  "dashboard": {
+    "sessions": "Mis Sesiones",
+    "listings": "Mis Servicios",
+    "availability": "Disponibilidad",
+    "billing": "Facturación",
+    "settings": "Configuración",
+    "totalSessions": "Sesiones Totales",
+    "completed": "completadas",
+    "hoursMentored": "Horas de Mentoría",
+    "hoursLearned": "Horas Aprendidas",
+    "basedOnCompleted": "Basado en sesiones completadas"
+  },
+  "marketplace": {
+    "title": "Mentores Encontrados",
+    "search": "Buscar por nombre, título o empresa...",
+    "noMentors": "No se encontraron mentores",
+    "adjustFilters": "Intenta ajustar tus filtros o términos de búsqueda.",
+    "clearFilters": "Limpiar filtros",
+    "viewProfile": "Ver Perfil",
+    "rate": "Tarifa"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "submit": "Enviar",
+    "back": "Volver"
+  }
+}

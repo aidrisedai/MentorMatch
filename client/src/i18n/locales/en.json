@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Home",
+    "mentors": "Find Mentors",
+    "dashboard": "Dashboard",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "getStarted": "Get Started",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "landing": {
+    "hero": {
+      "title": "Connect with Real-World Mentors",
+      "subtitle": "Bridge the gap between school and the real world through 1-on-1 mentorship with industry professionals.",
+      "cta": "Find Your Mentor",
+      "secondary": "Become a Mentor"
+    },
+    "features": {
+      "title": "Why MentorMatch?",
+      "personalized": {
+        "title": "Personalized Guidance",
+        "description": "Get tailored advice from professionals in your field of interest."
+      },
+      "flexible": {
+        "title": "Flexible Scheduling",
+        "description": "Book sessions that fit your schedule, from anywhere in the world."
+      },
+      "verified": {
+        "title": "Verified Mentors",
+        "description": "All mentors are vetted professionals with real industry experience."
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "role": "I am a...",
+    "mentor": "Mentor",
+    "mentee": "Student",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "createAccount": "Create Account"
+  },
+  "dashboard": {
+    "sessions": "My Sessions",
+    "listings": "My Listings",
+    "availability": "Availability",
+    "billing": "Billing",
+    "settings": "Settings",
+    "totalSessions": "Total Sessions",
+    "completed": "completed",
+    "hoursMentored": "Hours Mentored",
+    "hoursLearned": "Hours Learned",
+    "basedOnCompleted": "Based on completed sessions"
+  },
+  "marketplace": {
+    "title": "Mentors Found",
+    "search": "Search by name, title, or company...",
+    "noMentors": "No mentors found",
+    "adjustFilters": "Try adjusting your filters or search terms.",
+    "clearFilters": "Clear all filters",
+    "viewProfile": "View Profile",
+    "rate": "Rate"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "submit": "Submit",
+    "back": "Back"
+  }
+}

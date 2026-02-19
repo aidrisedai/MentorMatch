@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "mentors": "Mentoren finden",
+    "dashboard": "Dashboard",
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "signOut": "Abmelden",
+    "getStarted": "Jetzt loslegen",
+    "profile": "Profil",
+    "settings": "Einstellungen"
+  },
+  "landing": {
+    "hero": {
+      "title": "Verbinde dich mit Mentoren aus der Praxis",
+      "subtitle": "Überbrücke die Lücke zwischen Schule und Arbeitswelt durch 1-zu-1-Mentoring mit Branchenexperten.",
+      "cta": "Finde deinen Mentor",
+      "secondary": "Mentor werden"
+    },
+    "features": {
+      "title": "Warum MentorMatch?",
+      "personalized": {
+        "title": "Individuelle Beratung",
+        "description": "Erhalte maßgeschneiderte Ratschläge von Experten in deinem Interessengebiet."
+      },
+      "flexible": {
+        "title": "Flexible Planung",
+        "description": "Buche Termine, die in deinen Zeitplan passen, von überall auf der Welt."
+      },
+      "verified": {
+        "title": "Geprüfte Mentoren",
+        "description": "Alle Mentoren sind verifizierte Profis mit echter Praxiserfahrung."
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "role": "Ich bin ein...",
+    "mentor": "Mentor",
+    "mentee": "Mentee",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits ein Konto?",
+    "createAccount": "Konto erstellen"
+  },
+  "dashboard": {
+    "sessions": "Meine Sitzungen",
+    "listings": "Meine Angebote",
+    "availability": "Verfügbarkeit",
+    "billing": "Abrechnung",
+    "settings": "Einstellungen",
+    "totalSessions": "Sitzungen insgesamt",
+    "completed": "abgeschlossen",
+    "hoursMentored": "Stunden als Mentor",
+    "hoursLearned": "Stunden gelernt",
+    "basedOnCompleted": "Basierend auf abgeschlossenen Sitzungen"
+  },
+  "marketplace": {
+    "title": "Verfügbare Mentoren",
+    "search": "Suche nach Name, Titel oder Unternehmen...",
+    "noMentors": "Keine Mentoren gefunden",
+    "adjustFilters": "Versuche, deine Filter oder Suchbegriffe anzupassen.",
+    "clearFilters": "Filter löschen",
+    "viewProfile": "Profil anzeigen",
+    "rate": "Preis"
+  },
+  "common": {
+    "loading": "Laden...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "submit": "Absenden",
+    "back": "Zurück"
+  }
+}
