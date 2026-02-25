@@ -7,6 +7,7 @@ import { users, services, bookings, expertise, availability, messages, reviews, 
 import { fromError } from "zod-validation-error";
 import bcrypt from "bcryptjs";
 import { sendWelcomeEmail, sendBookingConfirmationEmail, sendMeetingReminderEmail, sendVerificationEmail } from "./email";
+import { createGoogleMeetLink, updateGoogleMeetEvent, cancelGoogleMeetEvent } from "./googleMeet";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -397,9 +398,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "This time slot is already booked. Please choose another time." });
       }
 
-      const booking = await storage.createBooking(validatedData);
+      let booking = await storage.createBooking(validatedData);
       
-      // Send booking confirmation emails (non-blocking)
+      // Create Google Meet link and send confirmation emails (non-blocking)
       (async () => {
         try {
           const mentee = await storage.getUser(validatedData.menteeId);
@@ -409,17 +410,38 @@ export async function registerRoutes(
           if (mentee && mentor) {
             const serviceName = service?.title || "Mentorship Session";
             const scheduledAt = new Date(validatedData.scheduledAt);
+            
+            // Create Google Meet link
+            const { meetLink, eventId } = await createGoogleMeetLink(
+              `${mentor.firstName} ${mentor.lastName}`,
+              `${mentee.firstName} ${mentee.lastName}`,
+              mentor.email,
+              mentee.email,
+              serviceName,
+              scheduledAt,
+              validatedData.duration || 30
+            );
+            
+            // Update booking with Meet link
+            if (meetLink) {
+              booking = await storage.updateBooking(booking.id, {
+                meetLink,
+                googleEventId: eventId
+              });
+            }
+            
             await sendBookingConfirmationEmail(
               mentee.email,
               mentee.firstName,
               mentor.email,
               mentor.firstName,
               serviceName,
-              scheduledAt
+              scheduledAt,
+              meetLink
             );
           }
         } catch (e) {
-          console.error("Failed to send booking emails:", e);
+          console.error("Failed to create Meet link or send emails:", e);
         }
       })();
       
@@ -446,6 +468,17 @@ export async function registerRoutes(
       
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Cancel Google Meet event if booking is cancelled
+      if (status === 'cancelled' && booking.googleEventId) {
+        (async () => {
+          try {
+            await cancelGoogleMeetEvent(booking.googleEventId);
+          } catch (error) {
+            console.error("Failed to cancel Google Meet event:", error);
+          }
+        })();
       }
       
       res.json(booking);
@@ -577,6 +610,25 @@ export async function registerRoutes(
         .returning();
         
       if (!updated) return res.status(404).json({ message: "Booking not found" });
+      
+      // Update Google Meet event if it exists
+      if (updated.googleEventId) {
+        (async () => {
+          try {
+            const newScheduledAt = new Date(scheduledAt);
+            const endTime = new Date(newScheduledAt);
+            endTime.setMinutes(endTime.getMinutes() + (updated.duration || 30));
+            
+            await updateGoogleMeetEvent(updated.googleEventId, {
+              startTime: newScheduledAt,
+              endTime: endTime
+            });
+          } catch (error) {
+            console.error("Failed to update Google Meet event:", error);
+          }
+        })();
+      }
+      
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to reschedule booking" });

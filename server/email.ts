@@ -52,7 +52,8 @@ export async function sendBookingConfirmationEmail(
   mentorEmail: string,
   mentorName: string,
   serviceName: string,
-  scheduledAt: Date
+  scheduledAt: Date,
+  meetLink?: string
 ): Promise<boolean> {
   const formattedDate = scheduledAt.toLocaleDateString("en-US", {
     weekday: "long",
@@ -84,6 +85,7 @@ export async function sendBookingConfirmationEmail(
             <p><strong>Date:</strong> ${formattedDate}</p>
             <p><strong>Time:</strong> ${formattedTime}</p>
             <p><strong>Duration:</strong> 30 minutes</p>
+            ${meetLink ? `<p><strong>Meeting Link:</strong> <a href="${meetLink}" style="color: #0891b2; text-decoration: none;">${meetLink}</a></p>` : ''}
           </div>
           <p>You'll receive a reminder email before your session begins.</p>
           <p style="margin-top: 30px; color: #666;">Best regards,<br>The MentorMatch Team</p>
@@ -110,6 +112,7 @@ export async function sendBookingConfirmationEmail(
             <p><strong>Date:</strong> ${formattedDate}</p>
             <p><strong>Time:</strong> ${formattedTime}</p>
             <p><strong>Duration:</strong> 30 minutes</p>
+            ${meetLink ? `<p><strong>Meeting Link:</strong> <a href="${meetLink}" style="color: #0891b2; text-decoration: none;">${meetLink}</a></p>` : ''}
           </div>
           <p>You'll receive a reminder email before the session begins.</p>
           <p style="margin-top: 30px; color: #666;">Best regards,<br>The MentorMatch Team</p>

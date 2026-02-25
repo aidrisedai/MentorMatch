@@ -85,6 +85,8 @@ export const bookings = pgTable("bookings", {
   duration: integer("duration").notNull().default(30),
   status: text("status").notNull().$type<"pending" | "confirmed" | "completed" | "cancelled">().default("pending"),
   notes: text("notes"),
+  meetLink: text("meet_link"),
+  googleEventId: text("google_event_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

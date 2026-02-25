@@ -1,4 +1,4 @@
-import { Calendar, Clock, CreditCard, Plus, Trash2, Edit2, User, MessageCircle, Send } from "lucide-react";
+import { Calendar, Clock, CreditCard, Plus, Trash2, Edit2, User, MessageCircle, Send, Video, ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/authStore";
@@ -431,6 +431,18 @@ export default function Dashboard() {
                                   >
                                     <MessageCircle className="w-4 h-4" /> Chat
                                   </Button>
+                                  {session.meetLink && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="gap-1 text-blue-600 hover:text-blue-700"
+                                      onClick={() => window.open(session.meetLink, '_blank')}
+                                      data-testid={`button-meet-${session.id}`}
+                                    >
+                                      <Video className="w-4 h-4" /> Google Meet
+                                      <ExternalLink className="w-3 h-3" />
+                                    </Button>
+                                  )}
                                   <Dialog open={reschedulingSession?.id === session.id} onOpenChange={(open) => !open && setReschedulingSession(null)}>
                                     <DialogTrigger asChild>
                                       <Button size="sm" variant="outline" onClick={() => setReschedulingSession(session)}>Reschedule</Button>
@@ -464,23 +476,14 @@ export default function Dashboard() {
                                   >
                                     Cancel
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    onClick={() => {
-                                      const isTime = now >= startTime - 5 * 60000 && now <= endTime + 5 * 60000;
-                                      if (isTime) {
-                                        setLocation(`/call/${session.id}`);
-                                      } else {
-                                        toast({
-                                          title: "Not Time Yet",
-                                          description: "You can only join the call 5 minutes before the scheduled time.",
-                                          variant: "destructive"
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    Join Call
-                                  </Button>
+                                  {!session.meetLink && (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => setLocation(`/call/${session.id}`)}
+                                    >
+                                      Join Call (WebRTC)
+                                    </Button>
+                                  )}
                                 </div>
                               )}
                             </div>

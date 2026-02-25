@@ -28,6 +28,7 @@ export interface IStorage {
   getBookingsByMenteeId(menteeId: number): Promise<Booking[]>;
   getUpcomingBookings(): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
+  updateBooking(id: number, updates: Partial<Omit<Booking, 'id' | 'createdAt'>>): Promise<Booking | undefined>;
   updateBookingStatus(id: number, status: "pending" | "confirmed" | "completed" | "cancelled"): Promise<Booking | undefined>;
   
   // Expertise methods
@@ -230,6 +231,15 @@ export class DatabaseStorage implements IStorage {
     };
     const [newBooking] = await db.insert(bookings).values(bookingData).returning();
     return newBooking;
+  }
+
+  async updateBooking(id: number, updates: Partial<Omit<Booking, 'id' | 'createdAt'>>): Promise<Booking | undefined> {
+    const [booking] = await db
+      .update(bookings)
+      .set(updates)
+      .where(eq(bookings.id, id))
+      .returning();
+    return booking || undefined;
   }
 
   async updateBookingStatus(id: number, status: "pending" | "confirmed" | "completed" | "cancelled"): Promise<Booking | undefined> {
