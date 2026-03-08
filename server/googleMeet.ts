@@ -173,41 +173,22 @@ class GoogleMeetService {
     }
   }
 
-  private createFallbackMeeting(details: MeetingDetails): { meetLink: string; eventId: string } {
-    const meetingId = uuidv4().substring(0, 12);
-    const fallbackLink = `https://meet.google.com/${meetingId}`;
-    
-    console.log('Created fallback meeting link:', fallbackLink);
-    console.log('Note: This is a placeholder. Configure Google API credentials for real Meet links.');
-    
+  private createFallbackMeeting(_details: MeetingDetails): { meetLink: string; eventId: string } {
+    const roomId = `mentormatch-${uuidv4().replace(/-/g, '')}`;
+    const fallbackLink = `https://meet.jit.si/${roomId}`;
+
+    console.log('Created fallback video meeting link:', fallbackLink);
+    console.log('Google API credentials are not configured. Using a fallback provider for joinable links.');
+
     return {
       meetLink: fallbackLink,
-      eventId: meetingId,
+      eventId: roomId,
     };
   }
 
   generateInstantMeetLink(): string {
-    const meetingCode = this.generateMeetingCode();
-    return `https://meet.google.com/${meetingCode}`;
-  }
-
-  private generateMeetingCode(): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    let code = '';
-    
-    for (let i = 0; i < 3; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    code += '-';
-    for (let i = 0; i < 4; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    code += '-';
-    for (let i = 0; i < 3; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    
-    return code;
+    const roomId = `mentormatch-${uuidv4().replace(/-/g, '')}`;
+    return `https://meet.jit.si/${roomId}`;
   }
 }
 

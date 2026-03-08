@@ -15,7 +15,7 @@ MentorMatch supports automatic Google Meet link generation for mentorship sessio
 ### Option 1: Without Google API (Fallback Mode)
 
 If you don't configure Google API credentials, the system will:
-- Generate placeholder Google Meet links (format: `https://meet.google.com/xxx-xxxx-xxx`)
+- Generate joinable fallback video links (via Jitsi)
 - Still allow video calls through the built-in WebRTC system
 - Not create actual calendar events
 

@@ -432,6 +432,9 @@ export default function Dashboard() {
                                     <MessageCircle className="w-4 h-4" /> Chat
                                   </Button>
                                   {session.meetLink && (
+                                    (() => {
+                                      const isGoogleMeet = session.meetLink?.includes("meet.google.com");
+                                      return (
                                     <Button 
                                       size="sm" 
                                       variant="outline"
@@ -443,9 +446,11 @@ export default function Dashboard() {
                                       }}
                                       data-testid={`button-meet-${session.id}`}
                                     >
-                                      <Video className="w-4 h-4" /> Google Meet
+                                      <Video className="w-4 h-4" /> {isGoogleMeet ? "Google Meet" : "Video Call"}
                                       <ExternalLink className="w-3 h-3" />
                                     </Button>
+                                      );
+                                    })()
                                   )}
                                   <Dialog open={reschedulingSession?.id === session.id} onOpenChange={(open) => !open && setReschedulingSession(null)}>
                                     <DialogTrigger asChild>
