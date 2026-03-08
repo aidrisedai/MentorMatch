@@ -399,51 +399,52 @@ export async function registerRoutes(
       }
 
       let booking = await storage.createBooking(validatedData);
-      
-      // Create Google Meet link and send confirmation emails (non-blocking)
-      (async () => {
-        try {
-          const mentee = await storage.getUser(validatedData.menteeId);
-          const mentor = await storage.getUser(validatedData.mentorId);
-          const service = validatedData.serviceId ? await storage.getService(validatedData.serviceId) : null;
-          
-          if (mentee && mentor) {
-            const serviceName = service?.title || "Mentorship Session";
-            const scheduledAt = new Date(validatedData.scheduledAt);
-            
-            // Create Google Meet link
-            const { meetLink, eventId } = await createGoogleMeetLink(
-              `${mentor.firstName} ${mentor.lastName}`,
-              `${mentee.firstName} ${mentee.lastName}`,
-              mentor.email,
-              mentee.email,
-              serviceName,
-              scheduledAt,
-              validatedData.duration || 30
-            );
-            
-            // Update booking with Meet link
-            if (meetLink) {
-              booking = await storage.updateBooking(booking.id, {
-                meetLink,
-                googleEventId: eventId
-              });
+
+      try {
+        const mentee = await storage.getUser(validatedData.menteeId);
+        const mentor = await storage.getUser(validatedData.mentorId);
+        const service = validatedData.serviceId ? await storage.getService(validatedData.serviceId) : null;
+
+        if (mentee && mentor) {
+          const serviceName = service?.title || "Mentorship Session";
+          const scheduledAt = new Date(validatedData.scheduledAt);
+
+          // Ensure a meeting link exists before returning the booking response.
+          const { meetLink, eventId } = await createGoogleMeetLink(
+            `${mentor.firstName} ${mentor.lastName}`,
+            `${mentee.firstName} ${mentee.lastName}`,
+            mentor.email,
+            mentee.email,
+            serviceName,
+            scheduledAt,
+            validatedData.duration || 30
+          );
+
+          if (meetLink) {
+            const updatedBooking = await storage.updateBooking(booking.id, {
+              meetLink,
+              googleEventId: eventId
+            });
+            if (updatedBooking) {
+              booking = updatedBooking;
             }
-            
-            await sendBookingConfirmationEmail(
-              mentee.email,
-              mentee.firstName,
-              mentor.email,
-              mentor.firstName,
-              serviceName,
-              scheduledAt,
-              meetLink
-            );
           }
-        } catch (e) {
-          console.error("Failed to create Meet link or send emails:", e);
+
+          void sendBookingConfirmationEmail(
+            mentee.email,
+            mentee.firstName,
+            mentor.email,
+            mentor.firstName,
+            serviceName,
+            scheduledAt,
+            meetLink
+          ).catch((emailError) => {
+            console.error("Failed to send booking confirmation email:", emailError);
+          });
         }
-      })();
+      } catch (e) {
+        console.error("Failed to create Meet link:", e);
+      }
       
       res.status(201).json(booking);
     } catch (error: any) {
@@ -472,9 +473,10 @@ export async function registerRoutes(
       
       // Cancel Google Meet event if booking is cancelled
       if (status === 'cancelled' && booking.googleEventId) {
+        const googleEventId = booking.googleEventId;
         (async () => {
           try {
-            await cancelGoogleMeetEvent(booking.googleEventId);
+            await cancelGoogleMeetEvent(googleEventId);
           } catch (error) {
             console.error("Failed to cancel Google Meet event:", error);
           }
@@ -613,13 +615,14 @@ export async function registerRoutes(
       
       // Update Google Meet event if it exists
       if (updated.googleEventId) {
+        const googleEventId = updated.googleEventId;
         (async () => {
           try {
             const newScheduledAt = new Date(scheduledAt);
             const endTime = new Date(newScheduledAt);
             endTime.setMinutes(endTime.getMinutes() + (updated.duration || 30));
             
-            await updateGoogleMeetEvent(updated.googleEventId, {
+            await updateGoogleMeetEvent(googleEventId, {
               startTime: newScheduledAt,
               endTime: endTime
             });

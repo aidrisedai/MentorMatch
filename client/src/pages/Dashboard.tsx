@@ -436,7 +436,11 @@ export default function Dashboard() {
                                       size="sm" 
                                       variant="outline"
                                       className="gap-1 text-blue-600 hover:text-blue-700"
-                                      onClick={() => window.open(session.meetLink, '_blank')}
+                                      onClick={() => {
+                                        if (session.meetLink) {
+                                          window.open(session.meetLink, '_blank');
+                                        }
+                                      }}
                                       data-testid={`button-meet-${session.id}`}
                                     >
                                       <Video className="w-4 h-4" /> Google Meet

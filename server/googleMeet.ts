@@ -32,12 +32,11 @@ class GoogleMeetService {
         });
         this.isConfigured = true;
       } else if (clientEmail && privateKey) {
-        this.auth = new google.auth.JWT(
-          clientEmail,
-          undefined,
-          privateKey,
-          ['https://www.googleapis.com/auth/calendar']
-        );
+        this.auth = new google.auth.JWT({
+          email: clientEmail,
+          key: privateKey,
+          scopes: ['https://www.googleapis.com/auth/calendar'],
+        });
         this.isConfigured = true;
       } else {
         console.log('Google Meet: No credentials configured, using fallback mode');

@@ -21,6 +21,8 @@ export interface Booking {
   duration: number;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   notes?: string | null;
+  meetLink?: string | null;
+  googleEventId?: string | null;
   createdAt?: string;
   menteeName?: string;
   menteeAvatar?: string | null;
