@@ -103,9 +103,9 @@ export async function sendBookingConfirmationEmail(
       subject: `New Booking: ${serviceName} with ${menteeName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #0891b2;">New Booking!</h1>
+          <h1 style="color: #0891b2;">New Booking Request!</h1>
           <p>Hi ${mentorName},</p>
-          <p>You have a new mentorship session booked!</p>
+          <p>A student has requested a mentorship session with you. Please log in to your dashboard to confirm or manage this booking.</p>
           <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <p><strong>Service:</strong> ${serviceName}</p>
             <p><strong>Student:</strong> ${menteeName}</p>
@@ -114,6 +114,7 @@ export async function sendBookingConfirmationEmail(
             <p><strong>Duration:</strong> 30 minutes</p>
             ${meetLink ? `<p><strong>Meeting Link:</strong> <a href="${meetLink}" style="color: #0891b2; text-decoration: none;">${meetLink}</a></p>` : ''}
           </div>
+          <p>The session is pending your confirmation. Visit your dashboard to accept or reschedule.</p>
           <p>You'll receive a reminder email before the session begins.</p>
           <p style="margin-top: 30px; color: #666;">Best regards,<br>The MentorMatch Team</p>
         </div>
@@ -181,7 +182,8 @@ export async function sendMeetingReminderEmail(
   otherPartyName: string,
   serviceName: string,
   scheduledAt: Date,
-  isMentor: boolean
+  isMentor: boolean,
+  meetLink?: string
 ): Promise<boolean> {
   const formattedTime = scheduledAt.toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -204,8 +206,16 @@ export async function sendMeetingReminderEmail(
             <p><strong>${isMentor ? "Student" : "Mentor"}:</strong> ${otherPartyName}</p>
             <p><strong>Time:</strong> ${formattedTime}</p>
             <p><strong>Duration:</strong> 30 minutes</p>
+            ${meetLink ? `<p><strong>Join Meeting:</strong> <a href="${meetLink}" style="color: #0891b2; text-decoration: none; font-weight: bold;">${meetLink}</a></p>` : ''}
           </div>
-          <p>Make sure to log in to MentorMatch to join the video call.</p>
+          ${meetLink
+            ? `<div style="text-align: center; margin: 20px 0;">
+                <a href="${meetLink}" style="background: #0891b2; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+                  Join Video Call
+                </a>
+              </div>`
+            : '<p>Log in to MentorMatch to join the video call.</p>'
+          }
           <p style="margin-top: 30px; color: #666;">Best regards,<br>The MentorMatch Team</p>
         </div>
       `,

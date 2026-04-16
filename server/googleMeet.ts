@@ -11,8 +11,8 @@ interface MeetingDetails {
 
 class GoogleMeetService {
   private calendar: any;
-  private auth: any;
   private isConfigured: boolean = false;
+  private authMode: 'oauth2' | 'service-account' | 'none' = 'none';
 
   constructor() {
     this.initializeAuth();
@@ -20,32 +20,54 @@ class GoogleMeetService {
 
   private initializeAuth() {
     try {
-      const credentials = process.env.GOOGLE_CREDENTIALS;
-      const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-      const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      // Priority 1: OAuth2 with refresh token (works with any Google account)
+      const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+      const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
 
+      if (clientId && clientSecret && refreshToken) {
+        const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+        oauth2Client.setCredentials({ refresh_token: refreshToken });
+        this.calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        this.isConfigured = true;
+        this.authMode = 'oauth2';
+        console.log('Google Meet: Configured with OAuth2 (refresh token)');
+        return;
+      }
+
+      // Priority 2: Service account JSON credentials (requires Google Workspace)
+      const credentials = process.env.GOOGLE_CREDENTIALS;
       if (credentials) {
         const parsedCredentials = JSON.parse(credentials);
-        this.auth = new google.auth.GoogleAuth({
+        const auth = new google.auth.GoogleAuth({
           credentials: parsedCredentials,
           scopes: ['https://www.googleapis.com/auth/calendar'],
         });
+        this.calendar = google.calendar({ version: 'v3', auth });
         this.isConfigured = true;
-      } else if (clientEmail && privateKey) {
-        this.auth = new google.auth.JWT({
+        this.authMode = 'service-account';
+        console.log('Google Meet: Configured with service account (JSON)');
+        return;
+      }
+
+      // Priority 3: Separate service account credentials
+      const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+      const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      if (clientEmail && privateKey) {
+        const auth = new google.auth.JWT({
           email: clientEmail,
           key: privateKey,
           scopes: ['https://www.googleapis.com/auth/calendar'],
         });
+        this.calendar = google.calendar({ version: 'v3', auth });
         this.isConfigured = true;
-      } else {
-        console.log('Google Meet: No credentials configured, using fallback mode');
-        this.isConfigured = false;
+        this.authMode = 'service-account';
+        console.log('Google Meet: Configured with service account (JWT)');
+        return;
       }
 
-      if (this.isConfigured) {
-        this.calendar = google.calendar({ version: 'v3', auth: this.auth });
-      }
+      console.log('Google Meet: No credentials configured, using Jitsi fallback mode');
+      this.isConfigured = false;
     } catch (error) {
       console.error('Failed to initialize Google Meet service:', error);
       this.isConfigured = false;
@@ -54,7 +76,7 @@ class GoogleMeetService {
 
   async createMeeting(details: MeetingDetails): Promise<{ meetLink: string; eventId: string } | null> {
     if (!this.isConfigured) {
-      return this.createFallbackMeeting(details);
+      return this.createFallbackMeeting();
     }
 
     try {
@@ -94,21 +116,24 @@ class GoogleMeetService {
         resource: event,
         conferenceDataVersion: 1,
         sendNotifications: true,
+        sendUpdates: 'all',
       });
 
       const meetLink = response.data.hangoutLink || response.data.conferenceData?.entryPoints?.[0]?.uri;
-      
+
       if (meetLink) {
+        console.log(`Google Meet link created: ${meetLink}`);
         return {
           meetLink,
           eventId: response.data.id,
         };
       }
 
-      return this.createFallbackMeeting(details);
-    } catch (error) {
-      console.error('Failed to create Google Meet:', error);
-      return this.createFallbackMeeting(details);
+      console.warn('Calendar event created but no Meet link returned, using fallback');
+      return this.createFallbackMeeting();
+    } catch (error: any) {
+      console.error('Failed to create Google Meet:', error.message || error);
+      return this.createFallbackMeeting();
     }
   }
 
@@ -119,7 +144,7 @@ class GoogleMeetService {
 
     try {
       const event: any = {};
-      
+
       if (details.summary) event.summary = details.summary;
       if (details.description) event.description = details.description;
       if (details.startTime) {
@@ -146,6 +171,7 @@ class GoogleMeetService {
         eventId: eventId,
         resource: event,
         sendNotifications: true,
+        sendUpdates: 'all',
       });
 
       return true;
@@ -165,6 +191,7 @@ class GoogleMeetService {
         calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
         eventId: eventId,
         sendNotifications: true,
+        sendUpdates: 'all',
       });
       return true;
     } catch (error) {
@@ -173,12 +200,11 @@ class GoogleMeetService {
     }
   }
 
-  private createFallbackMeeting(_details: MeetingDetails): { meetLink: string; eventId: string } {
+  private createFallbackMeeting(): { meetLink: string; eventId: string } {
     const roomId = `mentormatch-${uuidv4().replace(/-/g, '')}`;
     const fallbackLink = `https://meet.jit.si/${roomId}`;
 
-    console.log('Created fallback video meeting link:', fallbackLink);
-    console.log('Google API credentials are not configured. Using a fallback provider for joinable links.');
+    console.log('Using Jitsi fallback video link:', fallbackLink);
 
     return {
       meetLink: fallbackLink,
@@ -218,7 +244,7 @@ export async function createGoogleMeetLink(
   };
 
   const result = await googleMeetService.createMeeting(meetingDetails);
-  
+
   if (result) {
     return result;
   }

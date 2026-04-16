@@ -244,6 +244,22 @@ export default function Dashboard() {
     }
   };
 
+  const handleConfirmBooking = async (id: number) => {
+    try {
+      await updateBookingStatusMutation.mutateAsync({ id, status: 'confirmed' });
+      toast({
+        title: "Session Confirmed",
+        description: "The mentorship session has been confirmed. Both parties will be notified."
+      });
+    } catch (error) {
+      toast({
+        title: "Failed",
+        description: "Could not confirm session. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleCancelBooking = async (id: number) => {
     try {
       await updateBookingStatusMutation.mutateAsync({ id, status: 'cancelled' });
@@ -384,12 +400,15 @@ export default function Dashboard() {
                         const endTime = startTime + durationMs;
                         const now = new Date().getTime();
                         
-                        let statusLabel = "Upcoming";
+                        let statusLabel = "Confirmed";
                         let statusColor = "bg-blue-500";
-                        
+
                         if (session.status === 'cancelled') {
                           statusLabel = "Cancelled";
                           statusColor = "bg-destructive text-destructive-foreground";
+                        } else if (session.status === 'pending') {
+                          statusLabel = "Pending";
+                          statusColor = "bg-yellow-500 text-yellow-950";
                         } else if (now >= startTime && now <= endTime) {
                           statusLabel = "In Progress";
                           statusColor = "bg-green-500 animate-pulse";
@@ -422,8 +441,19 @@ export default function Dashboard() {
                               </Badge>
                               {session.status !== 'cancelled' && (
                                 <div className="flex flex-wrap gap-2">
-                                  <Button 
-                                    size="sm" 
+                                  {user.role === 'mentor' && session.status === 'pending' && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="gap-1 bg-green-600 hover:bg-green-700"
+                                      onClick={() => handleConfirmBooking(session.id)}
+                                      data-testid={`button-confirm-${session.id}`}
+                                    >
+                                      Accept
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
                                     variant="outline"
                                     className="gap-1"
                                     onClick={() => setChatSession(session)}

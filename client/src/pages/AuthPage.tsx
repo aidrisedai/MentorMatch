@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import authBackground from "@assets/generated_images/abstract_connection_network_background.png";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { useAuth } from "@/lib/authStore";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function AuthPage() {
   const getInitialTab = () => {
@@ -30,9 +31,123 @@ export default function AuthPage() {
     }
   }, []);
   const [isLoading, setIsLoading] = useState(false);
+  const [googleRoleDialog, setGoogleRoleDialog] = useState<{ credential: string; email: string; firstName: string; lastName: string } | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { setUser } = useAuth();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleSignupButtonRef = useRef<HTMLDivElement>(null);
+
+  const handleGoogleCallback = useCallback(async (response: any, selectedRole?: string) => {
+    const credential = response.credential || response;
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential, role: selectedRole })
+      });
+
+      const data = await res.json();
+
+      if (data.needsRole) {
+        // New user - need to pick a role
+        setGoogleRoleDialog({
+          credential,
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        });
+        return;
+      }
+
+      if (res.ok) {
+        setUser(data);
+        toast({
+          title: data.message ? "Account Created!" : "Welcome back!",
+          description: data.message || "You have successfully signed in with Google.",
+        });
+        if (data.role === "mentee" && !data.onboardingCompleted) {
+          setLocation("/onboarding");
+        } else {
+          setLocation("/dashboard");
+        }
+      } else {
+        toast({
+          title: "Sign-In Failed",
+          description: data.message || "Google sign-in failed. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sign-In Failed",
+        description: "Something went wrong with Google sign-in.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setUser, setLocation, toast]);
+
+  const handleGoogleRoleSelect = async (role: "mentor" | "mentee") => {
+    if (!googleRoleDialog) return;
+    setGoogleRoleDialog(null);
+    await handleGoogleCallback(googleRoleDialog.credential, role);
+  };
+
+  useEffect(() => {
+    // Load Google Identity Services script
+    const clientId = (window as any).__GOOGLE_CLIENT_ID__;
+    if (!clientId) {
+      // Try fetching from server config
+      fetch('/api/config/google-client-id').then(r => r.ok ? r.json() : null).then(data => {
+        if (data?.clientId) {
+          (window as any).__GOOGLE_CLIENT_ID__ = data.clientId;
+          loadGoogleScript(data.clientId);
+        }
+      }).catch(() => {});
+      return;
+    }
+    loadGoogleScript(clientId);
+  }, [activeTab]);
+
+  function loadGoogleScript(clientId: string) {
+    if (!clientId) return;
+    const existing = document.getElementById('google-gsi-script');
+    if (existing) {
+      renderGoogleButtons(clientId);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.id = 'google-gsi-script';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => renderGoogleButtons(clientId);
+    document.head.appendChild(script);
+  }
+
+  function renderGoogleButtons(clientId: string) {
+    const google = (window as any).google;
+    if (!google?.accounts?.id) return;
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCallback,
+    });
+    if (googleButtonRef.current) {
+      googleButtonRef.current.innerHTML = '';
+      google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline', size: 'large', width: '100%', text: 'signin_with',
+      });
+    }
+    if (googleSignupButtonRef.current) {
+      googleSignupButtonRef.current.innerHTML = '';
+      google.accounts.id.renderButton(googleSignupButtonRef.current, {
+        theme: 'outline', size: 'large', width: '100%', text: 'signup_with',
+      });
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,6 +310,15 @@ export default function AuthPage() {
               <form onSubmit={handleLogin}>
                 <Card className="border-none shadow-none">
                   <CardContent className="space-y-4 p-0">
+                    <div ref={googleButtonRef} className="w-full flex justify-center" />
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">or continue with email</span>
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <Input id="email" data-testid="input-email" type="email" placeholder="name@example.com" required />
@@ -231,6 +355,15 @@ export default function AuthPage() {
               <form onSubmit={handleSignup}>
                 <Card className="border-none shadow-none">
                   <CardContent className="space-y-4 p-0">
+                    <div ref={googleSignupButtonRef} className="w-full flex justify-center" />
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">or sign up with email</span>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="first-name">First name</Label>
@@ -294,6 +427,38 @@ export default function AuthPage() {
           </p>
         </div>
       </div>
+
+      {/* Google OAuth Role Selection Dialog */}
+      <Dialog open={!!googleRoleDialog} onOpenChange={(open) => !open && setGoogleRoleDialog(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Welcome! How would you like to join?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            We'll set up your account as <strong>{googleRoleDialog?.email}</strong>. Please select your role:
+          </p>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col gap-2"
+              onClick={() => handleGoogleRoleSelect("mentee")}
+            >
+              <span className="text-2xl">📚</span>
+              <span className="font-semibold">Student</span>
+              <span className="text-xs text-muted-foreground">I want a mentor</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col gap-2"
+              onClick={() => handleGoogleRoleSelect("mentor")}
+            >
+              <span className="text-2xl">⭐</span>
+              <span className="font-semibold">Mentor</span>
+              <span className="text-xs text-muted-foreground">I want to guide</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="hidden lg:block relative bg-transparent overflow-hidden z-10">
         <img 

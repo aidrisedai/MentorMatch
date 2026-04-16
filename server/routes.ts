@@ -10,6 +10,7 @@ import { sendWelcomeEmail, sendBookingConfirmationEmail, sendMeetingReminderEmai
 import { createGoogleMeetLink, updateGoogleMeetEvent, cancelGoogleMeetEvent } from "./googleMeet";
 import crypto from "crypto";
 import { z } from "zod";
+import { OAuth2Client } from "google-auth-library";
 
 const TOKEN_EXPIRY_HOURS = 24;
 
@@ -26,6 +27,16 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // Config endpoint for frontend
+  app.get("/api/config/google-client-id", (_req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (clientId) {
+      res.json({ clientId });
+    } else {
+      res.status(404).json({ message: "Google OAuth not configured" });
+    }
+  });
+
   // Auth Routes
   app.post("/api/auth/signup", async (req, res) => {
     try {
@@ -132,6 +143,77 @@ export async function registerRoutes(
       res.json({ message: "If an account exists with that email, a verification link has been sent." });
     } catch (error) {
       res.status(500).json({ message: "Failed to resend verification" });
+    }
+  });
+
+  // Google OAuth Sign-In
+  app.post("/api/auth/google", async (req, res) => {
+    try {
+      const { credential, role } = req.body;
+
+      if (!credential) {
+        return res.status(400).json({ message: "Google credential is required" });
+      }
+
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        return res.status(500).json({ message: "Google OAuth is not configured on the server" });
+      }
+
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId,
+      });
+      const payload = ticket.getPayload();
+
+      if (!payload || !payload.email) {
+        return res.status(400).json({ message: "Invalid Google token" });
+      }
+
+      // Check if user already exists
+      let user = await storage.getUserByEmail(payload.email);
+
+      if (user) {
+        // Existing user - log them in
+        const { password, verificationToken, ...userWithoutSensitive } = user;
+        return res.json(userWithoutSensitive);
+      }
+
+      // New user - create account
+      if (!role || !["mentor", "mentee"].includes(role)) {
+        return res.status(400).json({
+          message: "Please select a role",
+          needsRole: true,
+          email: payload.email,
+          firstName: payload.given_name || "",
+          lastName: payload.family_name || "",
+        });
+      }
+
+      // Create user with a random password (they'll use Google to sign in)
+      const randomPassword = crypto.randomBytes(32).toString("hex") + "Aa1!";
+      user = await storage.createUser({
+        email: payload.email,
+        password: randomPassword,
+        firstName: payload.given_name || payload.email.split("@")[0],
+        lastName: payload.family_name || "",
+        role,
+        avatar: payload.picture || null,
+      });
+
+      sendWelcomeEmail(user.email, user.firstName).catch((err) => {
+        console.error("Failed to send welcome email:", err);
+      });
+
+      const { password, ...userWithoutSensitive } = user;
+      res.status(201).json({
+        ...userWithoutSensitive,
+        message: "Account created successfully!"
+      });
+    } catch (error: any) {
+      console.error("Google auth error:", error);
+      res.status(401).json({ message: "Google authentication failed" });
     }
   });
 
@@ -582,21 +664,6 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/bookings/:id/status", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { status } = req.body;
-      if (!["pending", "confirmed", "completed", "cancelled"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
-      }
-      const booking = await storage.updateBookingStatus(id, status);
-      if (!booking) return res.status(404).json({ message: "Booking not found" });
-      res.json(booking);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update booking status" });
-    }
-  });
-
   app.patch("/api/bookings/:id/reschedule", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -792,6 +859,7 @@ export async function registerRoutes(
           const serviceName = service?.title || "Mentorship Session";
           
           if (mentee && mentor) {
+            const meetLink = booking.meetLink || undefined;
             // Send to mentee
             await sendMeetingReminderEmail(
               mentee.email,
@@ -799,9 +867,10 @@ export async function registerRoutes(
               mentor.firstName,
               serviceName,
               scheduledAt,
-              false
+              false,
+              meetLink
             );
-            
+
             // Send to mentor
             await sendMeetingReminderEmail(
               mentor.email,
@@ -809,7 +878,8 @@ export async function registerRoutes(
               mentee.firstName,
               serviceName,
               scheduledAt,
-              true
+              true,
+              meetLink
             );
             
             sentReminders.add(booking.id);
